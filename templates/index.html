@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Inverter AC: Fuzzification ⇄ Defuzzification</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .custom-range::-webkit-slider-thumb {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #2563eb;
+      border: 3px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+      transition: all 0.15s ease;
+    }
+    .custom-range::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen antialiased flex flex-col justify-between">
+
+  <!-- ================= TOP NAVIGATION HEADER (PROFESSIONAL MIDNIGHT SLATE) ================= -->
+  <header class="bg-[#0f172a] text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-3.5 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <!-- Logo & Project Identity -->
+      <div class="flex items-center gap-3.5">
+        <!-- Smart Inverter AC Unit Vector Logo -->
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center shadow-md shadow-blue-500/25 border border-blue-400/25 flex-shrink-0">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Wall-Mounted Split AC Body -->
+            <rect x="2" y="3.5" width="20" height="9" rx="1.5" fill="currentColor" fill-opacity="0.18"/>
+            <!-- Air Vent Horizontal Grill -->
+            <line x1="5" y1="9" x2="19" y2="9" stroke-width="1.4"/>
+            <!-- Inverter Power Cyan LED Indicator -->
+            <circle cx="18" cy="6.2" r="1" fill="#38bdf8" stroke="none"/>
+            <!-- Downward Cooling Airflow Waves -->
+            <path d="M6 15.5c1.5 1.5 3 2 6 2s4.5-.5 6-2" stroke="#38bdf8" stroke-width="1.6"/>
+            <path d="M8 18.5c1.2 1 2.4 1.5 4 1.5s2.8-.5 4-1.5" stroke="#38bdf8" stroke-width="1.3" opacity="0.75"/>
+          </svg>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-lg font-extrabold text-white tracking-tight">Smart Inverter AC</h1>
+            <span class="bg-blue-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wide">
+              Fuzzy Logic Controller
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
+            <span class="text-blue-400 font-semibold">Fuzzification</span>
+            <span class="text-slate-500">⇄</span>
+            <span class="text-purple-400 font-semibold">Defuzzification</span>
+            <span class="text-slate-500">&bull;</span>
+            <span class="text-slate-400">Closed-Loop Temperature Control</span>
+          </p>
+        </div>
+      </div>
+
+     
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
+
+    <!-- CONCEPT FLOW BANNER (EXECUTIVE CARDS WITH SUBTLE ACCENTS) -->
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+      <div class="flex flex-col lg:flex-row items-center justify-between gap-3 text-center">
+        
+        <!-- Step 1 -->
+        <div class="flex-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-3.5 border-l-4 border-l-blue-600 text-left transition hover:border-slate-300">
+          <div class="text-[11px] uppercase font-bold text-blue-700 tracking-wider">Step 1: Crisp Input</div>
+          <div class="text-lg font-bold text-slate-900 mono mt-0.5" id="flow-crisp-in">34.0 °C</div>
+          <div class="text-xs text-slate-500 mt-0.5">Primary Thermal Sensor</div>
+        </div>
+        <div class="text-slate-400 font-bold text-lg hidden lg:block">→</div>
+
+        <!-- Step 2 -->
+        <div class="flex-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-3.5 border-l-4 border-l-indigo-600 text-left transition hover:border-slate-300">
+          <div class="text-[11px] uppercase font-bold text-indigo-700 tracking-wider">Step 2: Fuzzification</div>
+          <div class="text-sm font-semibold text-slate-900 mt-0.5 truncate" id="flow-fuzz">μ(Warm), μ(Hot)</div>
+          <div class="text-xs text-slate-500 mt-0.5">Triangular / Trapezoidal MFs</div>
+        </div>
+        <div class="text-slate-400 font-bold text-lg hidden lg:block">→</div>
+
+        <!-- Step 3 -->
+        <div class="flex-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-3.5 border-l-4 border-l-purple-600 text-left transition hover:border-slate-300">
+          <div class="text-[11px] uppercase font-bold text-purple-700 tracking-wider">Step 3: Defuzzification</div>
+          <div class="text-lg font-bold text-purple-900 mono mt-0.5" id="flow-crisp-out">81.5 %</div>
+          <div class="text-xs text-slate-500 mt-0.5">Centroid (Center of Gravity)</div>
+        </div>
+        <div class="text-slate-400 font-bold text-lg hidden lg:block">⇄</div>
+
+        <!-- Step 4 -->
+        <div class="flex-1 w-full bg-slate-50 border border-emerald-300 rounded-lg p-3.5 border-l-4 border-l-emerald-600 text-left transition ring-1 ring-emerald-100">
+          <div class="text-[11px] uppercase font-bold text-emerald-700 tracking-wider">Step 4: Defuzz ➔ Fuzz</div>
+          <div class="text-sm font-semibold text-emerald-950 mt-0.5 truncate" id="flow-reverse">Re-Fuzzify & Feedback</div>
+          <div class="text-xs text-slate-500 mt-0.5">Closed-Loop Environmental Loop</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- LIVE INTERACTIVE CONTROL PANEL -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200/90">
+      
+      <!-- Panel Header & Presets -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>🌡️</span> Interactive Control Interface
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Adjust ambient temperature via slider or direct numerical input to observe real-time inference</p>
+        </div>
+
+        <!-- Presets -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-xs text-slate-400 mr-1 font-medium">Presets:</span>
+          <button onclick="setTemp(8)" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">Freezing (8°C)</button>
+          <button onclick="setTemp(18)" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">Cold (18°C)</button>
+          <button onclick="setTemp(25)" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">Comfort (25°C)</button>
+          <button onclick="setTemp(32)" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">Warm (32°C)</button>
+          <button onclick="setTemp(42)" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition">Hot (42°C)</button>
+        </div>
+      </div>
+
+      <!-- Controls Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+        
+        <!-- Left 3 cols: Slider & Input -->
+        <div class="md:col-span-3 space-y-3">
+          
+          <div class="flex flex-wrap justify-between items-center text-xs font-semibold gap-2">
+            <span class="text-slate-600">Operating Range: 0°C to 50°C</span>
+            
+            <!-- Type Input Box -->
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400 font-medium">Type Value:</span>
+              <div class="flex items-center bg-white border border-slate-300 rounded-lg shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600">
+                <input type="number" id="temp-input" min="0" max="50" step="0.5" value="34.0" 
+                       oninput="onTempInputChange(this.value)"
+                       class="w-20 px-2 py-1 text-right font-bold text-slate-900 text-sm focus:outline-none mono">
+                <span class="bg-slate-100 text-slate-600 px-2 py-1 font-semibold text-xs border-l border-slate-200">°C</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slider -->
+          <input type="range" id="temp-slider" min="0" max="50" step="0.5" value="34" 
+                 oninput="onTempChange(this.value)" 
+                 class="w-full h-2.5 bg-slate-200 rounded-lg appearance-none custom-range cursor-pointer">
+
+          <div class="flex justify-between text-[11px] text-slate-400 font-medium">
+            <span>0°C (Extreme Cold)</span>
+            <span>25°C (Ideal Setpoint)</span>
+            <span>50°C (Extreme Heat)</span>
+          </div>
+
+        </div>
+
+        <!-- Right 1 col: Output KPI Card (Professional Obsidian Dark Theme) -->
+        <div class="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Defuzzified Output</div>
+          <div class="text-3xl font-bold text-blue-400 my-1 mono" id="centroid-display">81.5%</div>
+          <div class="text-xs font-semibold text-slate-300" id="actuator-status">AC Cooling Power</div>
+          <div class="mt-2 text-[10px] text-slate-400 border-t border-slate-800 pt-1.5">
+            Mamdani Centroid COG
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- NAVIGATION TABS (PROFESSIONAL MINIMAL UNDERLINE) -->
+    <div class="flex border-b border-slate-200 space-x-1 overflow-x-auto text-xs">
+      <button onclick="switchTab('tab-forward')" id="btn-tab-forward" class="tab-btn px-4 py-3 font-semibold border-b-2 border-blue-600 text-blue-700 transition">
+        1. Forward: Fuzzification ➔ Defuzzification
+      </button>
+      <button onclick="switchTab('tab-reverse')" id="btn-tab-reverse" class="tab-btn px-4 py-3 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        2. Reverse: Defuzzification ➔ Fuzzification
+      </button>
+      <button onclick="switchTab('tab-sim')" id="btn-tab-sim" class="tab-btn px-4 py-3 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        3. Closed-Loop Simulation
+      </button>
+      <button onclick="switchTab('tab-curves')" id="btn-tab-curves" class="tab-btn px-4 py-3 font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition">
+        4. Membership Curves (MF)
+      </button>
+    </div>
+
+    <!-- ================= TAB 1: FORWARD PIPELINE ================= -->
+    <div id="tab-forward" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Fuzzification Card -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-blue-100 text-blue-700 inline-flex items-center justify-center text-xs font-bold font-mono">1</span>
+              Fuzzification (Crisp ➔ Fuzzy Sets)
+            </h3>
+            <span class="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-semibold">T = <strong id="fuzz-input-val">34.0°C</strong></span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3.5">
+            Transforms scalar temperature input into continuous membership degrees μ(x) ∈ [0, 1]:
+          </p>
+          <div class="space-y-2.5" id="fuzzification-bars">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Rule Base Activation Card -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-indigo-100 text-indigo-700 inline-flex items-center justify-center text-xs font-bold font-mono">2</span>
+              Mamdani Inference (Rule Evaluation)
+            </h3>
+            <span class="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono">Min-Max T-Norm</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3.5">
+            Knowledge Base evaluation where rule firing strength is α = μ(antecedent):
+          </p>
+          <div class="space-y-2" id="rule-cards">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Defuzzification Calculation Detail Card -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+        <h3 class="font-bold text-sm text-slate-900 mb-1 flex items-center gap-2">
+          <span class="w-6 h-6 rounded bg-purple-100 text-purple-700 inline-flex items-center justify-center text-xs font-bold font-mono">3</span>
+          Defuzzification Mathematics (Centroid / COG Method)
+        </h3>
+        <p class="text-xs text-slate-500 mb-4">
+          Converts the aggregated fuzzy area into a single crisp control output using the Center of Gravity (COG) formula:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+          
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+            <div class="text-[11px] uppercase font-bold text-slate-400 mb-1">Centroid Formula</div>
+            <div class="text-xs font-mono font-bold text-slate-800 py-1.5 bg-white rounded border border-slate-200">
+              y* = Σ(y · μ(y)) / Σ(μ(y))
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500">Continuous equivalent: ∫(y&bull;μ)dy / ∫μ dy</div>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="text-[11px] uppercase font-bold text-slate-400 mb-1">Calculated Integration</div>
+            <div class="text-xs space-y-1 text-slate-700 font-mono">
+              <div>Numerator Σ(y&bull;μ) = <span class="font-bold text-blue-700" id="defuzz-num">0</span></div>
+              <div>Denominator Σ(μ) = <span class="font-bold text-blue-700" id="defuzz-den">0</span></div>
+              <div class="text-[10px] text-slate-400 font-sans pt-1">Discrete universe: y ∈ [0, 100]</div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white p-4 rounded-xl shadow-sm text-center border border-slate-800">
+            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Crisp Control Output</div>
+            <div class="text-3xl font-bold text-blue-400 my-1 mono" id="defuzz-centroid-res">-- %</div>
+            <div class="text-[11px] text-slate-400">MOM Reference: <span id="defuzz-mom-res" class="text-slate-200 mono">-- %</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 2: REVERSE PIPELINE ================= -->
+    <div id="tab-reverse" class="tab-content hidden space-y-6">
+      
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Re-Fuzzification of Crisp Output -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-sm text-slate-900">
+              Part A: Re-Fuzzifying the Crisp Output
+            </h3>
+            <span class="text-xs bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-bold mono" id="rev-power-in">81.5% Power</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">
+            Mapping Crisp Power back into Output Fuzzy Membership Sets:
+          </p>
+          <div class="space-y-2.5" id="rev-fuzz-bars">
+            <!-- Dynamically populated -->
+          </div>
+          <div class="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700" id="rev-explanation">
+            --
+          </div>
+        </div>
+
+        <!-- Environmental Feedback Loop Card -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-sm text-slate-900">
+              Part B: 1-Cycle Plant Feedback Dynamics
+            </h3>
+            <span class="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-semibold">Feedback Active</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">
+            Environmental state transition under current actuator duty cycle:
+          </p>
+
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/70">
+              <span class="text-slate-500">Previous Temperature (t):</span>
+              <span class="font-bold mono text-slate-900" id="fb-prev-temp">34.0 °C</span>
+            </div>
+            <div class="flex justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/70">
+              <span class="text-slate-500">Applied Actuator Power:</span>
+              <span class="font-bold mono text-blue-700" id="fb-power">81.5 %</span>
+            </div>
+            <div class="flex justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/70">
+              <span class="text-slate-500">Predicted Temperature Drop (ΔT):</span>
+              <span class="font-bold mono text-emerald-700" id="fb-delta">-0.65 °C</span>
+            </div>
+            <div class="flex justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <span class="text-emerald-900 font-semibold">New Plant State (t+1):</span>
+              <span class="font-bold mono text-emerald-950 text-sm" id="fb-new-temp">33.35 °C</span>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="text-xs font-bold text-slate-700 mb-2">Re-Fuzzification of New State (Next Cycle Initializer):</div>
+            <div class="space-y-2" id="fb-new-fuzz-bars">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= TAB 3: CLOSED-LOOP SIMULATION ================= -->
+    <div id="tab-sim" class="tab-content hidden space-y-6">
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Multi-Step Closed-Loop Convergence</h3>
+            <p class="text-xs text-slate-500">Iterative regulation cycle: Fuzzify ➔ Defuzzify ➔ Thermal Plant Loss ➔ Re-Fuzzify</p>
+          </div>
+          <button onclick="runSimulation()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-xs shadow-sm transition">
+            ▶ Run Simulation Steps
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+          <div class="h-64">
+            <canvas id="simChart"></canvas>
+          </div>
+          <div class="overflow-x-auto max-h-64 border border-slate-200 rounded-lg">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-semibold sticky top-0 border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5">Step</th>
+                  <th class="p-2.5">Temp (°C)</th>
+                  <th class="p-2.5">AC Power (%)</th>
+                  <th class="p-2.5">Actuator Mode</th>
+                  <th class="p-2.5">Resultant Temp</th>
+                </tr>
+              </thead>
+              <tbody id="sim-table-body" class="divide-y divide-slate-100 text-slate-700 font-mono text-[11px]">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 4: MEMBERSHIP CURVES ================= -->
+    <div id="tab-curves" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+          <h4 class="font-bold text-sm text-slate-900 mb-0.5">Input Universe: Temperature (°C)</h4>
+          <p class="text-xs text-slate-500 mb-3">Triangular & Trapezoidal curves: Freezing, Cold, Comfortable, Warm, Hot</p>
+          <div class="h-64">
+            <canvas id="tempCurveChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200/90">
+          <h4 class="font-bold text-sm text-slate-900 mb-0.5">Output Universe: Cooling Power (%)</h4>
+          <p class="text-xs text-slate-500 mb-3">Consequent linguistic sets: Off/Min, Low, Medium, High, Turbo</p>
+          <div class="h-64">
+            <canvas id="powerCurveChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+
+
+  <!-- ================= JAVASCRIPT ================= -->
+  <script>
+    let currentTemp = 34.0;
+    let simChartInstance = null;
+    let tempChartInstance = null;
+    let powerChartInstance = null;
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'text-blue-700', 'font-semibold');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('border-blue-600', 'text-blue-700', 'font-semibold');
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      }
+
+      if (tabId === 'tab-curves') {
+        loadCurves();
+      } else if (tabId === 'tab-sim' && !simChartInstance) {
+        runSimulation();
+      }
+    }
+
+    function setTemp(val) {
+      document.getElementById('temp-slider').value = val;
+      const inputEl = document.getElementById('temp-input');
+      if (inputEl) inputEl.value = parseFloat(val).toFixed(1);
+      onTempChange(val);
+    }
+
+    function onTempChange(val) {
+      currentTemp = parseFloat(val);
+      const inputEl = document.getElementById('temp-input');
+      if (inputEl && document.activeElement !== inputEl) {
+        inputEl.value = currentTemp.toFixed(1);
+      }
+      document.getElementById('flow-crisp-in').innerText = currentTemp.toFixed(1) + ' °C';
+      document.getElementById('fuzz-input-val').innerText = currentTemp.toFixed(1) + ' °C';
+      fetchCompute();
+    }
+
+    function onTempInputChange(val) {
+      let num = parseFloat(val);
+      if (isNaN(num)) return;
+      if (num < 0) num = 0;
+      if (num > 50) num = 50;
+      currentTemp = num;
+      document.getElementById('temp-slider').value = num;
+      document.getElementById('flow-crisp-in').innerText = currentTemp.toFixed(1) + ' °C';
+      document.getElementById('fuzz-input-val').innerText = currentTemp.toFixed(1) + ' °C';
+      fetchCompute();
+    }
+
+    async function fetchCompute() {
+      try {
+        const res = await fetch(`/api/compute?temp=${currentTemp}`);
+        const data = await res.json();
+        updateUI(data);
+      } catch (e) {
+        console.error("Compute error:", e);
+      }
+    }
+
+    function renderBar(name, val, color) {
+      const pct = Math.round(val * 100);
+      return `
+        <div>
+          <div class="flex justify-between text-xs font-medium mb-1">
+            <span class="${val > 0 ? 'text-slate-900 font-semibold' : 'text-slate-400'}">${name}</span>
+            <span class="font-mono text-slate-700">${val.toFixed(2)} (${pct}%)</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50">
+            <div class="h-2 rounded-full ${color} transition-all duration-300" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateUI(data) {
+      const fwd = data.forward;
+      const rev = data.reverse;
+      const fb = data.feedback;
+
+      // 1. Fuzzification Bars (Professional High-Contrast Palette)
+      const fuzzColors = {
+        "Freezing": "bg-sky-600",
+        "Cold": "bg-blue-600",
+        "Comfortable": "bg-emerald-600",
+        "Warm": "bg-amber-600",
+        "Hot": "bg-rose-600"
+      };
+      let fuzzHtml = "";
+      let activeNames = [];
+      for (const [k, v] of Object.entries(fwd.fuzzification)) {
+        fuzzHtml += renderBar(k, v, fuzzColors[k] || "bg-blue-600");
+        if (v > 0) activeNames.push(`${k}: ${v.toFixed(2)}`);
+      }
+      document.getElementById('fuzzification-bars').innerHTML = fuzzHtml;
+      document.getElementById('flow-fuzz').innerText = activeNames.join(', ') || "None";
+
+      // 2. Rule Cards
+      let ruleHtml = "";
+      fwd.rule_firings.forEach(r => {
+        const isFired = r.firing_strength > 0;
+        ruleHtml += `
+          <div class="p-2 rounded-lg border ${isFired ? 'bg-blue-50/70 border-blue-200 text-blue-950 font-medium' : 'bg-slate-50 border-slate-200/60 opacity-50 text-slate-400'} flex justify-between items-center text-xs">
+            <div>
+              <span class="font-bold ${isFired ? 'text-blue-900' : 'text-slate-600'}">Rule ${r.rule_id}:</span>
+              <span>IF Temp is <strong>${r.antecedent}</strong> ➔ Power is <strong>${r.consequent}</strong></span>
+            </div>
+            <span class="px-2 py-0.5 rounded font-mono font-bold ${isFired ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}">
+              α = ${r.firing_strength.toFixed(2)}
+            </span>
+          </div>
+        `;
+      });
+      document.getElementById('rule-cards').innerHTML = ruleHtml;
+
+      // 3. Defuzzification Math
+      const centroid = fwd.defuzzification.centroid;
+      const mom = fwd.defuzzification.mom;
+      document.getElementById('centroid-display').innerText = centroid.toFixed(1) + ' %';
+      document.getElementById('flow-crisp-out').innerText = centroid.toFixed(1) + ' %';
+      document.getElementById('defuzz-centroid-res').innerText = centroid.toFixed(1) + ' %';
+      document.getElementById('defuzz-mom-res').innerText = mom.toFixed(1) + ' %';
+      document.getElementById('defuzz-num').innerText = fwd.defuzzification.numerator;
+      document.getElementById('defuzz-den').innerText = fwd.defuzzification.denominator;
+
+      // 4. Reverse / Re-Fuzzification
+      document.getElementById('rev-power-in').innerText = centroid.toFixed(1) + ' % Power';
+      const powerColors = {
+        "Off/Min": "bg-slate-400",
+        "Low": "bg-blue-500",
+        "Medium": "bg-emerald-600",
+        "High": "bg-amber-600",
+        "Turbo": "bg-rose-600"
+      };
+      let revHtml = "";
+      for (const [k, v] of Object.entries(rev.re_fuzzified_memberships)) {
+        revHtml += renderBar(k, v, powerColors[k] || "bg-indigo-600");
+      }
+      document.getElementById('rev-fuzz-bars').innerHTML = revHtml;
+      document.getElementById('rev-explanation').innerHTML = `
+        <strong>Actuator Verification:</strong> ${rev.explanation}
+      `;
+      document.getElementById('actuator-status').innerText = `MODE: ${rev.dominant_state.toUpperCase()}`;
+
+      // 5. Feedback Loop
+      document.getElementById('fb-prev-temp').innerText = fb.previous_temp.toFixed(1) + ' °C';
+      document.getElementById('fb-power').innerText = fb.applied_crisp_power.toFixed(1) + ' %';
+      document.getElementById('fb-delta').innerText = fb.delta_temp > 0 ? `+${fb.delta_temp}°C` : `${fb.delta_temp}°C`;
+      document.getElementById('fb-new-temp').innerText = fb.new_crisp_temp.toFixed(2) + ' °C';
+
+      let fbNewFuzzHtml = "";
+      for (const [k, v] of Object.entries(fb.re_fuzzified_new_state)) {
+        if (v > 0) {
+          fbNewFuzzHtml += renderBar(k, v, fuzzColors[k] || "bg-emerald-600");
+        }
+      }
+      document.getElementById('fb-new-fuzz-bars').innerHTML = fbNewFuzzHtml || "<div class='text-slate-400'>No active sets</div>";
+    }
+
+    async function runSimulation() {
+      try {
+        const res = await fetch(`/api/simulate?temp=${currentTemp}&steps=10`);
+        const data = await res.json();
+        const steps = data.steps;
+
+        let tableHtml = "";
+        const labels = [];
+        const tempData = [];
+        const powerData = [];
+
+        steps.forEach(s => {
+          labels.push(`Step ${s.step}`);
+          tempData.push(s.input_temp);
+          powerData.push(s.defuzzified_power);
+          const domActuator = Object.entries(s.output_refuzzification).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+
+          tableHtml += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-2 font-bold">${s.step}</td>
+              <td class="p-2 text-blue-700 font-semibold">${s.input_temp.toFixed(2)} °C</td>
+              <td class="p-2 text-purple-700 font-bold">${s.defuzzified_power.toFixed(1)} %</td>
+              <td class="p-2"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-sans font-semibold">${domActuator}</span></td>
+              <td class="p-2 text-emerald-700 font-semibold">${s.new_temp.toFixed(2)} °C</td>
+            </tr>
+          `;
+        });
+        document.getElementById('sim-table-body').innerHTML = tableHtml;
+
+        if (simChartInstance) simChartInstance.destroy();
+        const ctx = document.getElementById('simChart').getContext('2d');
+        simChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Room Temp (°C)',
+                data: tempData,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                yAxisID: 'y',
+                tension: 0.3,
+                fill: true
+              },
+              {
+                label: 'AC Power Defuzzified (%)',
+                data: powerData,
+                borderColor: '#7c3aed',
+                backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                yAxisID: 'y1',
+                tension: 0.3,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: { display: true, text: 'Temperature (°C)' }
+              },
+              y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: { display: true, text: 'Power (%)' },
+                grid: { drawOnChartArea: false }
+              }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Simulation error:", e);
+      }
+    }
+
+    async function loadCurves() {
+      if (tempChartInstance && powerChartInstance) return;
+      try {
+        const res = await fetch('/api/curves');
+        const data = await res.json();
+
+        // 1. Temp Chart
+        const tempColors = ['#0284c7', '#2563eb', '#059669', '#d97706', '#dc2626'];
+        const tempDatasets = Object.entries(data.temp_curves).map(([term, pts], i) => ({
+          label: term,
+          data: pts,
+          borderColor: tempColors[i % tempColors.length],
+          backgroundColor: tempColors[i % tempColors.length] + '18',
+          fill: true,
+          pointRadius: 0,
+          tension: 0.1
+        }));
+
+        const ctx1 = document.getElementById('tempCurveChart').getContext('2d');
+        tempChartInstance = new Chart(ctx1, {
+          type: 'line',
+          data: { labels: data.temp_x, datasets: tempDatasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { title: { display: true, text: 'Temperature (°C)' } },
+              y: { min: 0, max: 1.05, title: { display: true, text: 'Membership μ' } }
+            }
+          }
+        });
+
+        // 2. Power Chart
+        const powerColors = ['#64748b', '#2563eb', '#059669', '#d97706', '#dc2626'];
+        const powerDatasets = Object.entries(data.power_curves).map(([term, pts], i) => ({
+          label: term,
+          data: pts,
+          borderColor: powerColors[i % powerColors.length],
+          backgroundColor: powerColors[i % powerColors.length] + '18',
+          fill: true,
+          pointRadius: 0,
+          tension: 0.1
+        }));
+
+        const ctx2 = document.getElementById('powerCurveChart').getContext('2d');
+        powerChartInstance = new Chart(ctx2, {
+          type: 'line',
+          data: { labels: data.power_x, datasets: powerDatasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { title: { display: true, text: 'Cooling Power (%)' } },
+              y: { min: 0, max: 1.05, title: { display: true, text: 'Membership μ' } }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Curves error:", e);
+      }
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchCompute();
+    });
+  </script>
+</body>
+</html>
