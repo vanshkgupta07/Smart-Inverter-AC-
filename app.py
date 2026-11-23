@@ -12,10 +12,13 @@ app = Flask(__name__, template_folder=template_dir)
 system = SmartACFuzzySystem()
 
 @app.route("/")
+@app.route("/api/index")
+@app.route("/api/index.py")
 def index():
     return render_template("index.html")
 
 @app.route("/api/compute", methods=["POST", "GET"])
+@app.route("/compute", methods=["POST", "GET"])
 def compute():
     if request.method == "POST":
         data = request.get_json(silent=True) or request.form
@@ -41,6 +44,7 @@ def compute():
     })
 
 @app.route("/api/simulate", methods=["POST", "GET"])
+@app.route("/simulate", methods=["POST", "GET"])
 def simulate():
     if request.method == "POST":
         data = request.get_json(silent=True) or request.form
@@ -57,6 +61,7 @@ def simulate():
     })
 
 @app.route("/api/curves", methods=["GET"])
+@app.route("/curves", methods=["GET"])
 def get_curves():
     # Generate points for input temperature MF curves
     temp_points = [x * 0.5 for x in range(0, 101)] # 0 to 50 C
