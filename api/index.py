@@ -1,5 +1,6 @@
 import os
 import sys
+from urllib.parse import parse_qs
 
 # Ensure root directory is accessible for importing modules
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -8,24 +9,21 @@ if root_dir not in sys.path:
 
 from app import app
 
-# --- WSGI Middleware Fix for Vercel Routing Path mismatch ---
+# --- WSGI Middleware for Vercel Serverless Routing ---
 class VercelPathFix:
     def __init__(self, wsgi_app):
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
-        matched_path = environ.get("HTTP_X_MATCHED_PATH", "")
-        if matched_path:
-            environ["PATH_INFO"] = matched_path.split("?")[0]
-        else:
-            path_info = environ.get("PATH_INFO", "")
-            for prefix in ("/api/index.py", "/api/index"):
-                if path_info.startswith(prefix):
-                    path_info = path_info[len(prefix):] or "/"
-                    environ["PATH_INFO"] = path_info
-                    break
-
-        if environ.get("PATH_INFO") in ("/api/index", "/api/index.py", ""):
+        query_string = environ.get("QUERY_STRING", "")
+        if "_path=" in query_string:
+            params = parse_qs(query_string)
+            if "_path" in params and params["_path"]:
+                target_path = params["_path"][0]
+                environ["PATH_INFO"] = target_path if target_path.startswith("/") else "/" + target_path
+        elif environ.get("HTTP_X_FORWARDED_URI"):
+            environ["PATH_INFO"] = environ["HTTP_X_FORWARDED_URI"].split("?")[0]
+        elif environ.get("PATH_INFO") in ("/api/index.py", "/api/index", "/api", ""):
             environ["PATH_INFO"] = "/"
 
         return self.wsgi_app(environ, start_response)
